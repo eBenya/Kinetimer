@@ -22,7 +22,6 @@ import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 fun RestScreen(
     state: WorkoutUiState.Resting,
     onSkip: () -> Unit,
-    onPause: () -> Unit,
     onSelectNextExercise: (String) -> Unit,
 ) {
     Column(
@@ -55,12 +54,6 @@ fun RestScreen(
                 selectedExerciseId = state.selectedNextExerciseId,
                 onSelect = onSelectNextExercise,
             )
-        }
-        Spacer(Modifier.height(32.dp))
-        if (!state.requiresConfirmation) {
-            Button(onClick = onPause, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text("Пауза")
-            }
         }
         Button(onClick = onSkip, modifier = Modifier.fillMaxWidth().height(56.dp)) {
             Text(

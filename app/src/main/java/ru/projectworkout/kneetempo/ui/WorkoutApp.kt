@@ -95,7 +95,6 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
                     RestScreen(
                         state = state,
                         onSkip = workoutViewModel::skipRest,
-                        onPause = workoutViewModel::pauseWorkout,
                         onSelectNextExercise = workoutViewModel::selectNextExercise,
                     )
 

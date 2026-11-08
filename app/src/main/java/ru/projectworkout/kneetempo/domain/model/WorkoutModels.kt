@@ -27,7 +27,19 @@ data class AppSettings(
     val setRestSeconds: Int = 60,
     val exerciseRestSeconds: Int = 90,
     val keepScreenOnDuringWorkout: Boolean = true,
+    val language: AppLanguage = AppLanguage.Russian,
 )
+
+enum class AppLanguage(val preferenceValue: String) {
+    Russian("ru"),
+    English("en"),
+    ;
+
+    companion object {
+        fun fromPreferenceValue(value: String?): AppLanguage =
+            entries.firstOrNull { it.preferenceValue == value } ?: Russian
+    }
+}
 
 data class AppRelease(
     val tag: String,
@@ -53,10 +65,10 @@ sealed interface UpdateState {
 
     data class InstallPermissionRequired(
         val result: Result,
-        val message: String,
+        val messageResId: Int,
     ) : UpdateState
 
-    data class Error(val message: String) : UpdateState
+    data class Error(val messageResId: Int) : UpdateState
 }
 
 sealed interface AppDestination {
@@ -102,8 +114,8 @@ sealed interface WorkoutUiState {
         val secondsLeft: Int,
         val nextExerciseIndex: Int,
         val nextSetNumber: Int,
-        val title: String,
-        val message: String,
+        val titleResId: Int,
+        val messageResId: Int,
         val upcomingExercises: List<Exercise> = emptyList(),
         val selectedNextExerciseId: String? = null,
         val requiresConfirmation: Boolean = false,

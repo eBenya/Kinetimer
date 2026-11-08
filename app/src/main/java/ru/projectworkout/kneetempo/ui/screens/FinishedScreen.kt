@@ -13,7 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 
 @Composable
 fun FinishedScreen(onReturn: () -> Unit) {
@@ -22,15 +24,19 @@ fun FinishedScreen(onReturn: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Тренировка завершена", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(
-            text = "Отличная работа. Дайте себе время на восстановление.",
+            stringResource(R.string.workout_finished_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(R.string.workout_finished_message),
             modifier = Modifier.padding(vertical = 16.dp),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyLarge,
         )
         Button(onClick = onReturn, modifier = Modifier.fillMaxWidth()) {
-            Text("На главный экран")
+            Text(stringResource(R.string.workout_home))
         }
     }
 }

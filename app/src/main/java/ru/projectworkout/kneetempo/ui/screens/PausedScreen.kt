@@ -16,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 
 @Composable
@@ -33,7 +35,10 @@ fun PausedScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = if (isCountingDown) "Приготовьтесь продолжить" else "Тренировка на паузе",
+            text =
+                stringResource(
+                    if (isCountingDown) R.string.workout_get_ready_to_resume else R.string.workout_paused,
+                ),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -46,22 +51,22 @@ fun PausedScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text("Продолжение через", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.workout_resuming_in), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(24.dp))
             OutlinedButton(onClick = onCancelResume, modifier = Modifier.fillMaxWidth()) {
-                Text("Отменить")
+                Text(stringResource(R.string.common_cancel))
             }
         } else {
             val exerciseState = state.workoutState
             Text(
-                text = "${exerciseState.exercise.name}\n${exerciseState.phase.title}: ${exerciseState.secondsLeft} с",
+                text = "${localizedExerciseName(exerciseState.exercise)}\n${localizedExercisePhase(exerciseState.exercise, exerciseState.phaseNumber)}: ${exerciseState.secondsLeft} ${stringResource(R.string.duration_seconds_short)}",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
             )
             if (state.upcomingExercises.isEmpty()) {
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    "Других упражнений в блоке не осталось.",
+                    stringResource(R.string.workout_no_more_exercises),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -75,7 +80,7 @@ fun PausedScreen(
             }
             Spacer(Modifier.height(32.dp))
             Button(onClick = onResume, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text("Продолжить")
+                Text(stringResource(R.string.workout_continue))
             }
         }
     }

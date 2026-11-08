@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.Exercise
 import ru.projectworkout.kneetempo.domain.model.WorkoutBlock
 
@@ -30,35 +32,35 @@ import ru.projectworkout.kneetempo.domain.model.WorkoutBlock
 fun BlockEditorScreen(
     block: WorkoutBlock?,
     exercises: List<Exercise>,
-    message: String?,
+    message: Int?,
     onSave: (name: String, exerciseIds: List<String>) -> Unit,
     onBack: () -> Unit,
     onClearMessage: () -> Unit,
 ) {
     var name by remember(block?.id) { mutableStateOf(block?.name.orEmpty()) }
     var selectedIds by remember(block?.id) { mutableStateOf(block?.exerciseIds.orEmpty()) }
-    var validationMessage by remember(block?.id) { mutableStateOf<String?>(null) }
+    var validationMessage by remember(block?.id) { mutableStateOf<Int?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(onClick = onBack) { Text("← На главную") }
+        TextButton(onClick = onBack) { Text(stringResource(R.string.common_back_home)) }
         Text(
-            if (block == null) "Новый блок" else "Изменить блок",
+            stringResource(if (block == null) R.string.block_create_title else R.string.block_edit_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         OutlinedTextField(
             value = name,
             onValueChange = { name = it; onClearMessage() },
-            label = { Text("Название блока") },
+            label = { Text(stringResource(R.string.block_name_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        Text("Выберите упражнения. Их порядок будет соответствовать порядку выбора.")
+        Text(stringResource(R.string.block_select_exercises))
         if (exercises.isEmpty()) {
-            Text("Сначала добавьте упражнение в библиотеку.")
+            Text(stringResource(R.string.block_library_empty))
         } else {
             exercises.forEach { exercise ->
                 val selected = exercise.id in selectedIds
@@ -79,8 +81,11 @@ fun BlockEditorScreen(
                         },
                     )
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(exercise.name, fontWeight = FontWeight.Medium)
-                        Text("${exercise.sets} × ${exercise.repetitions}")
+                        Text(
+                            localizedExerciseName(exercise),
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Text(stringResource(R.string.exercise_sets_reps, exercise.sets, exercise.repetitions))
                     }
                     if (selected) {
                         Text(
@@ -92,21 +97,21 @@ fun BlockEditorScreen(
                 }
             }
         }
-        validationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        validationMessage?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+        message?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
         Button(
             onClick = {
                 validationMessage =
                     when {
-                        name.isBlank() -> "Введите название блока."
-                        selectedIds.isEmpty() -> "Выберите хотя бы одно упражнение."
+                        name.isBlank() -> R.string.block_validation_name
+                        selectedIds.isEmpty() -> R.string.block_validation_exercises
                         else -> null
                     }
                 if (validationMessage == null) onSave(name.trim(), selectedIds)
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Сохранить блок")
+            Text(stringResource(R.string.block_save))
         }
     }
 }

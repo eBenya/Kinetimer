@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 
 @Composable
@@ -29,14 +31,14 @@ fun PreparingScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            "Приготовьтесь",
+            stringResource(R.string.workout_get_ready),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            state.exerciseState.exercise.name,
+            localizedExerciseName(state.exerciseState.exercise),
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
         )
@@ -47,10 +49,10 @@ fun PreparingScreen(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
         )
-        Text("Начало через", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.workout_starting_in), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(32.dp))
         Button(onClick = onPause, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            Text("Пауза")
+            Text(stringResource(R.string.workout_pause))
         }
     }
 }

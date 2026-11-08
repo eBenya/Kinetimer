@@ -17,16 +17,19 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.WorkoutBlock
 
 @Composable
 fun HomeScreen(
     blocks: List<WorkoutBlock>,
-    message: String?,
+    message: Int?,
     onStartBlock: (String) -> Unit,
     onCreateBlock: () -> Unit,
     onEditBlock: (String) -> Unit,
@@ -40,13 +43,13 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Knee Tempo", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Text("Двигайтесь медленно. Следуйте ритму.", style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(R.string.home_tagline), style = MaterialTheme.typography.bodyLarge)
         if (message != null) {
-            Text(message, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = onClearMessage) { Text("Понятно") }
+            Text(stringResource(message), color = MaterialTheme.colorScheme.error)
+            TextButton(onClick = onClearMessage) { Text(stringResource(R.string.common_ok)) }
         }
 
-        Text("Готовые тренировки", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.home_built_in_workouts), style = MaterialTheme.typography.titleLarge)
         blocks.filter(WorkoutBlock::isBuiltIn).forEach { block ->
             BlockCard(
                 block = block,
@@ -59,12 +62,12 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("Мои блоки", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = onCreateBlock) { Text("Создать блок") }
+            Text(stringResource(R.string.home_my_blocks), style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onCreateBlock) { Text(stringResource(R.string.home_create_block)) }
         }
         val customBlocks = blocks.filterNot(WorkoutBlock::isBuiltIn)
         if (customBlocks.isEmpty()) {
-            Text("Соберите свою последовательность из библиотеки упражнений.")
+            Text(stringResource(R.string.home_build_your_sequence))
         } else {
             customBlocks.forEach { block ->
                 BlockCard(
@@ -78,13 +81,13 @@ fun HomeScreen(
 
         Spacer(Modifier.height(4.dp))
         OutlinedButton(onClick = onOpenLibrary, modifier = Modifier.fillMaxWidth()) {
-            Text("Мои упражнения")
+            Text(stringResource(R.string.home_my_exercises))
         }
         OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-            Text("Настройки")
+            Text(stringResource(R.string.home_settings))
         }
         Text(
-            "Выполняйте упражнения по программе, согласованной со специалистом. При боли остановитесь.",
+            stringResource(R.string.home_medical_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -100,15 +103,24 @@ private fun BlockCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(block.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("${block.exerciseIds.size} упражнений", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                localizedBlockName(block),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                pluralStringResource(R.plurals.exercise_count, block.exerciseIds.size, block.exerciseIds.size),
+                style = MaterialTheme.typography.bodyMedium,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onStart, modifier = Modifier.weight(1f)) { Text("Начать") }
+                Button(onClick = onStart, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.home_start))
+                }
                 if (onEdit != null) {
-                    OutlinedButton(onClick = onEdit) { Text("Изменить") }
+                    OutlinedButton(onClick = onEdit) { Text(stringResource(R.string.common_edit)) }
                 }
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("Удалить") }
+                    TextButton(onClick = onDelete) { Text(stringResource(R.string.common_delete)) }
                 }
             }
         }

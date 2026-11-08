@@ -2,8 +2,10 @@ package ru.projectworkout.kneetempo.ui
 
 import android.app.Application
 import android.database.sqlite.SQLiteException
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.core.os.LocaleListCompat
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.data.AppSettingsRepository
 import ru.projectworkout.kneetempo.data.ExerciseInUseException
 import ru.projectworkout.kneetempo.data.GitHubUpdateRepository
@@ -48,8 +51,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _blocks = MutableStateFlow<List<WorkoutBlock>>(emptyList())
     val blocks: StateFlow<List<WorkoutBlock>> = _blocks.asStateFlow()
 
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<Int?>(null)
+    val message: StateFlow<Int?> = _message.asStateFlow()
 
     private var workoutExercises: MutableList<Exercise> = mutableListOf()
     private var timerJob: Job? = null
@@ -69,8 +72,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateSettings(settings: AppSettings) {
+        val languageChanged = _settings.value.language != settings.language
         settingsRepository.save(settings)
         _settings.value = settings
+        if (languageChanged) {
+            AppCompatDelegate.setApplicationLocales(
+                LocaleListCompat.forLanguageTags(settings.language.preferenceValue),
+            )
+        }
     }
 
     fun checkForUpdates() {
@@ -91,11 +100,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                         versionComparable = versionComparison != null,
                     )
             } catch (exception: java.io.IOException) {
-                _updateState.value = UpdateState.Error(exception.message ?: "Не удалось проверить обновления.")
+                _updateState.value = UpdateState.Error(R.string.error_check_updates)
             } catch (exception: org.json.JSONException) {
-                _updateState.value = UpdateState.Error("Сервер обновлений вернул некорректный ответ.")
+                _updateState.value = UpdateState.Error(R.string.error_update_server_response)
             } catch (exception: SecurityException) {
-                _updateState.value = UpdateState.Error("Нет разрешения на подключение к серверу обновлений.")
+                _updateState.value = UpdateState.Error(R.string.error_update_connection)
             }
         }
     }
@@ -118,15 +127,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     _updateState.value =
                         UpdateState.InstallPermissionRequired(
                             result = result,
-                            message = "Разрешите установку приложений из Knee Tempo в системных настройках, затем нажмите «Установить обновление» еще раз.",
+                            messageResId = R.string.error_update_install_permission,
                         )
                 }
             } catch (exception: java.io.IOException) {
-                _updateState.value = UpdateState.Error(exception.message ?: "Не удалось скачать обновление.")
+                _updateState.value = UpdateState.Error(R.string.error_download_update)
             } catch (exception: SecurityException) {
-                _updateState.value = UpdateState.Error("Не удалось открыть установщик приложения.")
+                _updateState.value = UpdateState.Error(R.string.error_open_installer)
             } catch (exception: android.content.ActivityNotFoundException) {
-                _updateState.value = UpdateState.Error("На устройстве не найден системный установщик APK.")
+                _updateState.value = UpdateState.Error(R.string.error_no_installer)
             }
         }
     }
@@ -138,7 +147,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             getApplication<Application>().startActivity(intent)
         } catch (exception: android.content.ActivityNotFoundException) {
-            _updateState.value = UpdateState.Error("Не удалось открыть страницу выпуска.")
+            _updateState.value = UpdateState.Error(R.string.error_open_release)
         }
     }
 
@@ -208,16 +217,22 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                         val selectedBlock = database.getBlocks().firstOrNull { it.id == blockId }
                         selectedBlock to database.getExercises().associateBy(Exercise::id)
                     }
-                requireNotNull(block) { "Не удалось найти выбранный блок." }
-                val sequence = block.exerciseIds.map { id -> requireNotNull(allExercises[id]) }
-                require(sequence.isNotEmpty()) { "В блоке нет упражнений." }
+                if (block == null) {
+                    _message.value = R.string.error_block_not_found
+                    return@launch
+                }
+                val sequence = block.exerciseIds.mapNotNull(allExercises::get)
+                if (sequence.isEmpty()) {
+                    _message.value = R.string.error_block_empty
+                    return@launch
+                }
                 workoutExercises = sequence.toMutableList()
                 prepareExercise(exerciseIndex = 0, setNumber = 1)
                 _destination.value = AppDestination.Workout
             } catch (exception: IllegalArgumentException) {
-                _message.value = exception.message ?: "Не удалось запустить блок."
+                _message.value = R.string.error_start_workout
             } catch (exception: SQLiteException) {
-                _message.value = exception.message ?: "Не удалось прочитать данные тренировки."
+                _message.value = R.string.error_read_workout
             }
         }
     }
@@ -316,7 +331,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 _exercises.value = loadedExercises
                 _blocks.value = loadedBlocks
             } catch (exception: SQLiteException) {
-                _message.value = exception.message ?: "Не удалось загрузить библиотеку тренировок."
+                _message.value = R.string.error_load_library
             }
         }
     }
@@ -337,13 +352,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 _blocks.value = loadedBlocks
                 onSuccess()
             } catch (exception: ExerciseInUseException) {
-                _message.value = exception.message
+                _message.value = R.string.error_exercise_in_use
             } catch (exception: IllegalArgumentException) {
-                _message.value = exception.message ?: "Проверьте введенные данные."
+                _message.value = R.string.error_check_input
             } catch (exception: IllegalStateException) {
-                _message.value = exception.message ?: "Это действие недоступно."
+                _message.value = R.string.error_action_unavailable
             } catch (exception: SQLiteException) {
-                _message.value = exception.message ?: "Не удалось сохранить данные."
+                _message.value = R.string.error_save_data
             }
         }
     }
@@ -389,8 +404,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         seconds: Int,
         nextExerciseIndex: Int,
         nextSetNumber: Int,
-        title: String,
-        message: String,
+        titleResId: Int,
+        messageResId: Int,
         requiresConfirmation: Boolean = false,
     ) {
         if (seconds == 0 && !requiresConfirmation) {
@@ -403,8 +418,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 secondsLeft = seconds.coerceAtLeast(0),
                 nextExerciseIndex = nextExerciseIndex,
                 nextSetNumber = nextSetNumber,
-                title = title,
-                message = message,
+                titleResId = titleResId,
+                messageResId = messageResId,
                 upcomingExercises = upcoming,
                 selectedNextExerciseId = upcoming.firstOrNull()?.id,
                 requiresConfirmation = requiresConfirmation,
@@ -467,8 +482,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     seconds = _settings.value.setRestSeconds,
                     nextExerciseIndex = state.exerciseIndex,
                     nextSetNumber = state.setNumber + 1,
-                    title = "Подход завершен",
-                    message = "Восстановите дыхание перед следующим подходом.",
+                    titleResId = R.string.workout_set_complete,
+                    messageResId = R.string.workout_set_rest_message,
                 )
             }
 
@@ -477,8 +492,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     seconds = _settings.value.exerciseRestSeconds,
                     nextExerciseIndex = state.exerciseIndex + 1,
                     nextSetNumber = 1,
-                    title = "Упражнение завершено",
-                    message = "Отдохните или продолжите раньше, если уже готовы.",
+                    titleResId = R.string.workout_exercise_complete,
+                    messageResId = R.string.workout_exercise_rest_message,
                     requiresConfirmation = true,
                 )
             }

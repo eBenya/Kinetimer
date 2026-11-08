@@ -21,7 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 
 @Composable
@@ -41,21 +43,24 @@ fun ExerciseScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Упражнение ${state.exerciseIndex + 1} из ${state.exerciseCount}")
+            Text(stringResource(R.string.workout_exercise_progress, state.exerciseIndex + 1, state.exerciseCount))
             Row {
-                TextButton(onClick = onPause) { Text("Пауза") }
-                TextButton(onClick = onFinish) { Text("Завершить") }
+                TextButton(onClick = onPause) { Text(stringResource(R.string.workout_pause)) }
+                TextButton(onClick = onFinish) { Text(stringResource(R.string.workout_finish)) }
             }
         }
         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
         Text(
-            text = state.exercise.name,
+            text = localizedExerciseName(state.exercise),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            state.exercise.technique.forEach { instruction ->
-                Text("•  $instruction", style = MaterialTheme.typography.bodyLarge)
+            state.exercise.technique.forEachIndexed { index, _ ->
+                Text(
+                    "•  ${localizedExerciseTip(state.exercise, index)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
         Spacer(Modifier.height(4.dp))
@@ -71,7 +76,7 @@ fun ExerciseScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = state.phase.title,
+                    text = localizedExercisePhase(state.exercise, state.phaseNumber),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
@@ -81,7 +86,7 @@ fun ExerciseScreen(
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                Text("секунд до смены фазы", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.workout_phase_countdown), style = MaterialTheme.typography.bodyMedium)
             }
         }
         Row(
@@ -89,17 +94,17 @@ fun ExerciseScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "Повторение ${state.repetitionNumber} из ${state.exercise.repetitions}",
+                text = stringResource(R.string.workout_rep_progress, state.repetitionNumber, state.exercise.repetitions),
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = "Подход ${state.setNumber} из ${state.exercise.sets}",
+                text = stringResource(R.string.workout_set_progress, state.setNumber, state.exercise.sets),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
         Spacer(Modifier.weight(1f))
         Text(
-            text = "Следуйте таймеру. Не ускоряйте движение.",
+            text = stringResource(R.string.workout_follow_timer),
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,

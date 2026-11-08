@@ -10,16 +10,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
+import ru.projectworkout.kneetempo.domain.model.AppLanguage
 import ru.projectworkout.kneetempo.domain.model.AppSettings
 import ru.projectworkout.kneetempo.domain.model.UpdateState
 
@@ -34,30 +43,79 @@ fun SettingsScreen(
     onOpenRelease: (String) -> Unit,
     onBack: () -> Unit,
 ) {
+    var languageMenuExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(onClick = onBack) { Text("← На главную") }
-        Text("Настройки", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        TextButton(onClick = onBack) { Text(stringResource(R.string.common_back_home)) }
+        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
+                Column {
+                    TextButton(onClick = { languageMenuExpanded = true }) {
+                        Text(
+                            stringResource(
+                                if (settings.language == AppLanguage.Russian) {
+                                    R.string.settings_language_russian
+                                } else {
+                                    R.string.settings_language_english
+                                },
+                            ),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = languageMenuExpanded,
+                        onDismissRequest = { languageMenuExpanded = false },
+                    ) {
+                        AppLanguage.entries.forEach { language ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(
+                                            if (language == AppLanguage.Russian) {
+                                                R.string.settings_language_russian
+                                            } else {
+                                                R.string.settings_language_english
+                                            },
+                                        ),
+                                    )
+                                },
+                                onClick = {
+                                    onSettingsChange(settings.copy(language = language))
+                                    languageMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Тренировка", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.settings_workout), style = MaterialTheme.typography.titleLarge)
                 SwitchSetting(
-                    title = "Звуковые сигналы",
-                    description = "Сигнал смены фазы и отсчет последних секунд",
+                    title = stringResource(R.string.settings_sound),
+                    description = stringResource(R.string.settings_sound_description),
                     checked = settings.soundEnabled,
                     onCheckedChange = { onSettingsChange(settings.copy(soundEnabled = it)) },
                 )
                 SwitchSetting(
-                    title = "Не выключать экран",
-                    description = "Оставлять экран включенным во время тренировки",
+                    title = stringResource(R.string.settings_keep_screen_on),
+                    description = stringResource(R.string.settings_keep_screen_on_description),
                     checked = settings.keepScreenOnDuringWorkout,
                     onCheckedChange = { onSettingsChange(settings.copy(keepScreenOnDuringWorkout = it)) },
                 )
                 SecondsSetting(
-                    title = "Подготовка к упражнению",
+                    title = stringResource(R.string.settings_preparation),
                     seconds = settings.preparationSeconds,
                     minimum = MIN_PREPARATION_SECONDS,
                     maximum = MAX_PREPARATION_SECONDS,
@@ -65,7 +123,7 @@ fun SettingsScreen(
                     onChange = { onSettingsChange(settings.copy(preparationSeconds = it)) },
                 )
                 SecondsSetting(
-                    title = "Отдых между подходами",
+                    title = stringResource(R.string.settings_set_rest),
                     seconds = settings.setRestSeconds,
                     minimum = MIN_REST_SECONDS,
                     maximum = MAX_REST_SECONDS,
@@ -73,7 +131,7 @@ fun SettingsScreen(
                     onChange = { onSettingsChange(settings.copy(setRestSeconds = it)) },
                 )
                 SecondsSetting(
-                    title = "Отдых между упражнениями",
+                    title = stringResource(R.string.settings_exercise_rest),
                     seconds = settings.exerciseRestSeconds,
                     minimum = MIN_REST_SECONDS,
                     maximum = MAX_REST_SECONDS,
@@ -85,23 +143,24 @@ fun SettingsScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Обновление приложения", style = MaterialTheme.typography.titleLarge)
-                Text("Установлена версия $appVersion")
+                Text(stringResource(R.string.settings_updates), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.settings_installed_version, appVersion))
                 when (updateState) {
-                    UpdateState.Idle -> Text("Проверьте, доступен ли новый выпуск.")
-                    UpdateState.Checking -> Text("Проверяем GitHub Releases…")
-                    UpdateState.Downloading -> Text("Скачиваем обновление…")
-                    is UpdateState.Error -> Text(updateState.message, color = MaterialTheme.colorScheme.error)
+                    UpdateState.Idle -> Text(stringResource(R.string.settings_update_idle))
+                    UpdateState.Checking -> Text(stringResource(R.string.settings_update_checking))
+                    UpdateState.Downloading -> Text(stringResource(R.string.settings_update_downloading))
+                    is UpdateState.Error ->
+                        Text(stringResource(updateState.messageResId), color = MaterialTheme.colorScheme.error)
                     is UpdateState.InstallPermissionRequired -> {
-                        Text(updateState.message, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(updateState.messageResId), color = MaterialTheme.colorScheme.error)
                         Button(onClick = onInstallUpdate, modifier = Modifier.fillMaxWidth()) {
-                            Text("Установить обновление")
+                            Text(stringResource(R.string.settings_update_install))
                         }
                         OutlinedButton(
                             onClick = { onOpenRelease(updateState.result.release.pageUrl) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Открыть выпуск на GitHub")
+                            Text(stringResource(R.string.settings_update_open_github))
                         }
                     }
                     is UpdateState.Result -> {
@@ -109,21 +168,21 @@ fun SettingsScreen(
                         Text(
                             when {
                                 updateState.updateAvailable && updateState.versionComparable ->
-                                    "Доступно обновление ${release.name} (${release.tag})."
+                                    stringResource(R.string.settings_update_available, release.name, release.tag)
                                 updateState.updateAvailable ->
-                                    "Найден выпуск ${release.name} (${release.tag}); его версию нельзя автоматически сравнить с установленной."
+                                    stringResource(R.string.settings_update_found_uncomparable, release.name, release.tag)
                                 updateState.versionComparable ->
-                                    "Новых версий нет. Последний выпуск: ${release.name} (${release.tag})."
+                                    stringResource(R.string.settings_update_up_to_date, release.name, release.tag)
                                 else ->
-                                    "Последний выпуск: ${release.name} (${release.tag}). Версию нельзя автоматически сравнить с установленной."
+                                    stringResource(R.string.settings_update_uncomparable, release.name, release.tag)
                             },
                         )
                         if (updateState.updateAvailable) {
                             Button(onClick = onInstallUpdate, modifier = Modifier.fillMaxWidth()) {
-                                Text("Скачать и установить")
+                                Text(stringResource(R.string.settings_update_download_install))
                             }
                             Text(
-                                "Установку потребуется подтвердить в системном окне Android.",
+                                stringResource(R.string.settings_update_confirmation),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -132,7 +191,7 @@ fun SettingsScreen(
                             onClick = { onOpenRelease(release.pageUrl) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Открыть выпуск на GitHub")
+                            Text(stringResource(R.string.settings_update_open_github))
                         }
                     }
                 }
@@ -141,7 +200,7 @@ fun SettingsScreen(
                     enabled = updateState !is UpdateState.Checking && updateState !is UpdateState.Downloading,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Проверить обновления")
+                    Text(stringResource(R.string.settings_update_check))
                 }
             }
         }
@@ -186,7 +245,10 @@ private fun SecondsSetting(
         TextButton(onClick = { onChange((seconds - step).coerceAtLeast(minimum)) }, enabled = seconds > minimum) {
             Text("−")
         }
-        Text("$seconds с", style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(R.string.duration_format, seconds, stringResource(R.string.duration_seconds_short)),
+            style = MaterialTheme.typography.titleMedium,
+        )
         TextButton(onClick = { onChange((seconds + step).coerceAtMost(maximum)) }, enabled = seconds < maximum) {
             Text("+")
         }

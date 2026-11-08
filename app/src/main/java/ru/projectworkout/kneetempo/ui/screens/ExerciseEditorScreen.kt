@@ -24,7 +24,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.Exercise
 import ru.projectworkout.kneetempo.domain.model.MovementPhase
 
@@ -36,7 +38,7 @@ private data class PhaseDraft(
 @Composable
 fun ExerciseEditorScreen(
     exercise: Exercise?,
-    message: String?,
+    message: Int?,
     onSave: (Exercise) -> Unit,
     onBack: () -> Unit,
     onClearMessage: () -> Unit,
@@ -45,12 +47,13 @@ fun ExerciseEditorScreen(
     var technique by remember(exercise?.id) { mutableStateOf(exercise?.technique?.joinToString("\n").orEmpty()) }
     var sets by remember(exercise?.id) { mutableStateOf(exercise?.sets?.toString() ?: "3") }
     var repetitions by remember(exercise?.id) { mutableStateOf(exercise?.repetitions?.toString() ?: "12") }
-    var validationMessage by remember(exercise?.id) { mutableStateOf<String?>(null) }
+    var validationMessage by remember(exercise?.id) { mutableStateOf<Int?>(null) }
+    val defaultPhaseTitle = stringResource(R.string.exercise_default_phase)
     val phases =
         remember(exercise?.id) {
             mutableStateListOf<PhaseDraft>().apply {
                 exercise?.phases?.forEach { add(PhaseDraft(it.title, it.durationSeconds.toString())) }
-                if (isEmpty()) add(PhaseDraft("Медленное движение", "3"))
+                if (isEmpty()) add(PhaseDraft(defaultPhaseTitle, "3"))
             }
         }
 
@@ -58,23 +61,23 @@ fun ExerciseEditorScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(onClick = onBack) { Text("← Назад к упражнениям") }
+        TextButton(onClick = onBack) { Text(stringResource(R.string.common_back_exercises)) }
         Text(
-            if (exercise == null) "Новое упражнение" else "Изменить упражнение",
+            stringResource(if (exercise == null) R.string.exercise_create_title else R.string.exercise_edit_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
         OutlinedTextField(
             value = name,
             onValueChange = { name = it; onClearMessage() },
-            label = { Text("Название") },
+            label = { Text(stringResource(R.string.common_name)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
         OutlinedTextField(
             value = technique,
             onValueChange = { technique = it; onClearMessage() },
-            label = { Text("Подсказки техники — по одной на строку") },
+            label = { Text(stringResource(R.string.exercise_technique_label)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
         )
@@ -82,7 +85,7 @@ fun ExerciseEditorScreen(
             OutlinedTextField(
                 value = sets,
                 onValueChange = { sets = it.filter(Char::isDigit); onClearMessage() },
-                label = { Text("Подходы") },
+                label = { Text(stringResource(R.string.exercise_sets_label)) },
                 modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
@@ -90,19 +93,19 @@ fun ExerciseEditorScreen(
             OutlinedTextField(
                 value = repetitions,
                 onValueChange = { repetitions = it.filter(Char::isDigit); onClearMessage() },
-                label = { Text("Повторения") },
+                label = { Text(stringResource(R.string.exercise_repetitions_label)) },
                 modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
             )
         }
-        Text("Фазы движения", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.exercise_phases_title), style = MaterialTheme.typography.titleLarge)
         phases.forEachIndexed { index, phase ->
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
                     value = phase.title,
                     onValueChange = { phases[index] = phase.copy(title = it); onClearMessage() },
-                    label = { Text("Фаза ${index + 1}") },
+                    label = { Text(stringResource(R.string.exercise_phase_label, index + 1)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -113,13 +116,15 @@ fun ExerciseEditorScreen(
                             phases[index] = phase.copy(seconds = it.filter(Char::isDigit))
                             onClearMessage()
                         },
-                        label = { Text("Длительность, секунд") },
+                        label = { Text(stringResource(R.string.exercise_phase_duration)) },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                     )
                     if (phases.size > 1) {
-                        TextButton(onClick = { phases.removeAt(index) }) { Text("Удалить фазу") }
+                        TextButton(onClick = { phases.removeAt(index) }) {
+                            Text(stringResource(R.string.exercise_phase_delete))
+                        }
                     }
                 }
             }
@@ -131,11 +136,11 @@ fun ExerciseEditorScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Добавить фазу")
+            Text(stringResource(R.string.exercise_phase_add))
         }
 
-        validationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        validationMessage?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+        message?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
         Button(
             onClick = {
                 val setCount = sets.toIntOrNull()
@@ -151,10 +156,10 @@ fun ExerciseEditorScreen(
                     }
                 validationMessage =
                     when {
-                        name.isBlank() -> "Введите название упражнения."
-                        setCount == null || setCount <= 0 -> "Количество подходов должно быть больше нуля."
-                        repetitionCount == null || repetitionCount <= 0 -> "Количество повторений должно быть больше нуля."
-                        parsedPhases.size != phases.size -> "У каждой фазы должно быть название и положительная длительность."
+                        name.isBlank() -> R.string.exercise_validation_name
+                        setCount == null || setCount <= 0 -> R.string.exercise_validation_sets
+                        repetitionCount == null || repetitionCount <= 0 -> R.string.exercise_validation_repetitions
+                        parsedPhases.size != phases.size -> R.string.exercise_validation_phases
                         else -> null
                     }
                 if (validationMessage == null) {
@@ -172,7 +177,7 @@ fun ExerciseEditorScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Сохранить упражнение")
+            Text(stringResource(R.string.exercise_save))
         }
     }
 }

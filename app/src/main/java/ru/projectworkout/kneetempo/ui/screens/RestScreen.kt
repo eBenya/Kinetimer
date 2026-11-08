@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import ru.projectworkout.kneetempo.R
 import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 
 @Composable
@@ -29,10 +31,14 @@ fun RestScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(state.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            stringResource(state.titleResId),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = state.message,
+            text = stringResource(state.messageResId),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
@@ -44,7 +50,11 @@ fun RestScreen(
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            if (state.secondsLeft == 0) "Отдых завершен" else "секунд отдыха",
+            if (state.secondsLeft == 0) {
+                stringResource(R.string.workout_rest_complete)
+            } else {
+                stringResource(R.string.workout_rest_seconds)
+            },
             style = MaterialTheme.typography.titleMedium,
         )
         if (state.requiresConfirmation && state.upcomingExercises.isNotEmpty()) {
@@ -58,8 +68,8 @@ fun RestScreen(
         Button(onClick = onSkip, modifier = Modifier.fillMaxWidth().height(56.dp)) {
             Text(
                 when {
-                    state.requiresConfirmation -> "Продолжить"
-                    else -> "Пропустить отдых"
+                    state.requiresConfirmation -> stringResource(R.string.workout_continue)
+                    else -> stringResource(R.string.workout_skip_rest)
                 },
             )
         }

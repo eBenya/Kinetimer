@@ -143,7 +143,7 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
                     onOpenSettings = workoutViewModel::openSettings,
                     onClearMessage = workoutViewModel::clearMessage,
                 )
-            }
+                }
     }
 }
 

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "KneeTempo"
+rootProject.name = "KineTimer"
 include(":app")

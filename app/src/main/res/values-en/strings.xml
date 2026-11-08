@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">KineTimer</string>
     <string name="home_tagline">Move slowly. Follow the rhythm.</string>
     <string name="home_built_in_workouts">Workout plans</string>
     <string name="home_my_blocks">My routines</string>
@@ -110,7 +111,7 @@
     <string name="error_check_updates">Could not check for updates.</string>
     <string name="error_update_server_response">The update server returned an invalid response.</string>
     <string name="error_update_connection">Unable to connect to the update server.</string>
-    <string name="error_update_install_permission">Allow Knee Tempo to install apps in system settings, then tap “Install update” again.</string>
+    <string name="error_update_install_permission">Allow KineTimer to install apps in system settings, then tap “Install update” again.</string>
     <string name="error_download_update">Could not download the update.</string>
     <string name="error_open_installer">Could not open the app installer.</string>
     <string name="error_no_installer">No system APK installer was found on this device.</string>

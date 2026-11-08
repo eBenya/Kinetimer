@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">KineTimer</string>
     <string name="home_tagline">Двигайтесь медленно. Следуйте ритму.</string>
     <string name="home_built_in_workouts">Готовые тренировки</string>
     <string name="home_my_blocks">Мои блоки</string>
@@ -114,7 +115,7 @@
     <string name="error_check_updates">Не удалось проверить обновления.</string>
     <string name="error_update_server_response">Сервер обновлений вернул некорректный ответ.</string>
     <string name="error_update_connection">Нет разрешения на подключение к серверу обновлений.</string>
-    <string name="error_update_install_permission">Разрешите установку приложений из Knee Tempo в системных настройках, затем нажмите «Установить обновление» еще раз.</string>
+    <string name="error_update_install_permission">Разрешите установку приложений из KineTimer в системных настройках, затем нажмите «Установить обновление» еще раз.</string>
     <string name="error_download_update">Не удалось скачать обновление.</string>
     <string name="error_open_installer">Не удалось открыть установщик приложения.</string>
     <string name="error_no_installer">На устройстве не найден системный установщик APK.</string>

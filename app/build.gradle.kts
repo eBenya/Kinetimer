@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.projectworkout.kneetempo"
+    namespace = "ru.projectworkout.kinetimer"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
 

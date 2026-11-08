@@ -13,15 +13,28 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.projectworkout.kneetempo.data.AppSettingsRepository
 import ru.projectworkout.kneetempo.data.ExerciseInUseException
+import ru.projectworkout.kneetempo.data.GitHubUpdateRepository
 import ru.projectworkout.kneetempo.data.WorkoutLibraryDatabase
 import ru.projectworkout.kneetempo.domain.model.AppDestination
+import ru.projectworkout.kneetempo.domain.model.AppSettings
 import ru.projectworkout.kneetempo.domain.model.Exercise
+import ru.projectworkout.kneetempo.domain.model.UpdateState
 import ru.projectworkout.kneetempo.domain.model.WorkoutBlock
 import ru.projectworkout.kneetempo.domain.model.WorkoutUiState
 
 class WorkoutViewModel(application: Application) : AndroidViewModel(application) {
     private val database = WorkoutLibraryDatabase(application)
+    private val settingsRepository = AppSettingsRepository(application)
+    private val updateRepository = GitHubUpdateRepository(application)
+    val appVersion: String = updateRepository.currentVersion()
+
+    private val _settings = MutableStateFlow(settingsRepository.load())
+    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
     private val _destination = MutableStateFlow<AppDestination>(AppDestination.Home)
     val destination: StateFlow<AppDestination> = _destination.asStateFlow()
@@ -48,6 +61,85 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun openExerciseLibrary() {
         clearMessage()
         _destination.value = AppDestination.ExerciseLibrary
+    }
+
+    fun openSettings() {
+        clearMessage()
+        _destination.value = AppDestination.Settings
+    }
+
+    fun updateSettings(settings: AppSettings) {
+        settingsRepository.save(settings)
+        _settings.value = settings
+    }
+
+    fun checkForUpdates() {
+        if (_updateState.value is UpdateState.Checking || _updateState.value is UpdateState.Downloading) return
+        _updateState.value = UpdateState.Checking
+        viewModelScope.launch {
+            try {
+                val release = withContext(Dispatchers.IO) { updateRepository.fetchLatestRelease() }
+                val currentVersion = updateRepository.currentVersion()
+                val versionComparison = compareVersions(release.tag, currentVersion)
+                _updateState.value =
+                    UpdateState.Result(
+                        currentVersion = currentVersion,
+                        release = release,
+                        updateAvailable =
+                            versionComparison?.let { it > 0 }
+                                ?: !release.tag.equals(currentVersion, ignoreCase = true),
+                        versionComparable = versionComparison != null,
+                    )
+            } catch (exception: java.io.IOException) {
+                _updateState.value = UpdateState.Error(exception.message ?: "Не удалось проверить обновления.")
+            } catch (exception: org.json.JSONException) {
+                _updateState.value = UpdateState.Error("Сервер обновлений вернул некорректный ответ.")
+            } catch (exception: SecurityException) {
+                _updateState.value = UpdateState.Error("Нет разрешения на подключение к серверу обновлений.")
+            }
+        }
+    }
+
+    fun installUpdate() {
+        val result =
+            when (val state = _updateState.value) {
+                is UpdateState.Result -> state
+                is UpdateState.InstallPermissionRequired -> state.result
+                else -> return
+            }
+        if (!result.updateAvailable || _updateState.value is UpdateState.Downloading) return
+        _updateState.value = UpdateState.Downloading
+        viewModelScope.launch {
+            try {
+                val apk = withContext(Dispatchers.IO) { updateRepository.downloadApk(result.release) }
+                if (updateRepository.openInstaller(apk)) {
+                    _updateState.value = result
+                } else {
+                    _updateState.value =
+                        UpdateState.InstallPermissionRequired(
+                            result = result,
+                            message = "Разрешите установку приложений из Knee Tempo в системных настройках, затем нажмите «Установить обновление» еще раз.",
+                        )
+                }
+            } catch (exception: java.io.IOException) {
+                _updateState.value = UpdateState.Error(exception.message ?: "Не удалось скачать обновление.")
+            } catch (exception: SecurityException) {
+                _updateState.value = UpdateState.Error("Не удалось открыть установщик приложения.")
+            } catch (exception: android.content.ActivityNotFoundException) {
+                _updateState.value = UpdateState.Error("На устройстве не найден системный установщик APK.")
+            }
+        }
+    }
+
+    fun openRelease(url: String) {
+        try {
+            val intent =
+                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            getApplication<Application>().startActivity(intent)
+        } catch (exception: android.content.ActivityNotFoundException) {
+            _updateState.value = UpdateState.Error("Не удалось открыть страницу выпуска.")
+        }
     }
 
     fun createExercise() {
@@ -164,8 +256,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             startIndex = state.workoutState.exerciseIndex + 1,
             selectedExerciseId = state.selectedNextExerciseId,
         )
-        _uiState.value = state.copy(resumeSecondsLeft = PREPARATION_SECONDS)
-        startTimer()
+        val preparationSeconds = _settings.value.preparationSeconds
+        if (preparationSeconds == 0) {
+            _uiState.value = state.workoutState
+            startTimer()
+        } else {
+            _uiState.value = state.copy(resumeSecondsLeft = preparationSeconds)
+            startTimer()
+        }
     }
 
     fun selectNextExercise(exerciseId: String) {
@@ -276,11 +374,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     ) {
         showExercise(exerciseIndex, setNumber)
         val exerciseState = _uiState.value as WorkoutUiState.Exercising
+        val preparationSeconds = _settings.value.preparationSeconds
+        if (preparationSeconds == 0) return
         timerJob?.cancel()
         _uiState.value =
             WorkoutUiState.Preparing(
                 exerciseState = exerciseState,
-                secondsLeft = PREPARATION_SECONDS,
+                secondsLeft = preparationSeconds,
             )
         startTimer()
     }
@@ -293,10 +393,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         message: String,
         requiresConfirmation: Boolean = false,
     ) {
+        if (seconds == 0 && !requiresConfirmation) {
+            showExercise(nextExerciseIndex, nextSetNumber)
+            return
+        }
         val upcoming = if (requiresConfirmation) upcomingExercises(nextExerciseIndex) else emptyList()
         _uiState.value =
             WorkoutUiState.Resting(
-                secondsLeft = seconds,
+                secondsLeft = seconds.coerceAtLeast(0),
                 nextExerciseIndex = nextExerciseIndex,
                 nextSetNumber = nextSetNumber,
                 title = title,
@@ -305,7 +409,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 selectedNextExerciseId = upcoming.firstOrNull()?.id,
                 requiresConfirmation = requiresConfirmation,
             )
-        startTimer()
+        if (seconds > 0) startTimer()
     }
 
     private fun startTimer() {
@@ -360,7 +464,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
             state.setNumber < exercise.sets -> {
                 startRest(
-                    seconds = SET_REST_SECONDS,
+                    seconds = _settings.value.setRestSeconds,
                     nextExerciseIndex = state.exerciseIndex,
                     nextSetNumber = state.setNumber + 1,
                     title = "Подход завершен",
@@ -370,7 +474,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
             state.exerciseIndex < workoutExercises.lastIndex -> {
                 startRest(
-                    seconds = EXERCISE_REST_SECONDS,
+                    seconds = _settings.value.exerciseRestSeconds,
                     nextExerciseIndex = state.exerciseIndex + 1,
                     nextSetNumber = 1,
                     title = "Упражнение завершено",
@@ -423,8 +527,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         )
         showExercise(state.nextExerciseIndex, state.nextSetNumber)
         val exerciseState = _uiState.value as WorkoutUiState.Exercising
-        _uiState.value = WorkoutUiState.Preparing(exerciseState, PREPARATION_SECONDS)
-        startTimer()
+        val preparationSeconds = _settings.value.preparationSeconds
+        if (preparationSeconds == 0) {
+            _uiState.value = exerciseState
+        } else {
+            _uiState.value = WorkoutUiState.Preparing(exerciseState, preparationSeconds)
+            startTimer()
+        }
     }
 
     private fun upcomingExercises(startIndex: Int): List<Exercise> =
@@ -442,9 +551,24 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         workoutExercises.add(startIndex, selectedExercise)
     }
 
-    private companion object {
-        const val SET_REST_SECONDS = 60
-        const val EXERCISE_REST_SECONDS = 90
-        const val PREPARATION_SECONDS = 5
+    private fun compareVersions(
+        releaseTag: String,
+        currentVersion: String,
+    ): Int? {
+        val releaseNumbers = releaseTag.removePrefix("v").removePrefix("V").numericVersionParts()
+        val currentNumbers = currentVersion.removePrefix("v").removePrefix("V").numericVersionParts()
+        if (releaseNumbers == null || currentNumbers == null) return null
+        val partCount = maxOf(releaseNumbers.size, currentNumbers.size)
+        for (index in 0 until partCount) {
+            val releasePart = releaseNumbers.getOrElse(index) { 0 }
+            val currentPart = currentNumbers.getOrElse(index) { 0 }
+            if (releasePart != currentPart) return releasePart.compareTo(currentPart)
+        }
+        return 0
     }
+    private fun String.numericVersionParts(): List<Int>? {
+        if (!matches(Regex("\\d+(\\.\\d+)*"))) return null
+        return split('.').map(String::toInt)
+    }
+
 }

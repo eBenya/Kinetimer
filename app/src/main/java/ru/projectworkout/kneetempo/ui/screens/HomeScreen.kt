@@ -32,6 +32,7 @@ fun HomeScreen(
     onEditBlock: (String) -> Unit,
     onDeleteBlock: (String) -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenSettings: () -> Unit,
     onClearMessage: () -> Unit,
 ) {
     Column(
@@ -78,6 +79,9 @@ fun HomeScreen(
         Spacer(Modifier.height(4.dp))
         OutlinedButton(onClick = onOpenLibrary, modifier = Modifier.fillMaxWidth()) {
             Text("Мои упражнения")
+        }
+        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+            Text("Настройки")
         }
         Text(
             "Выполняйте упражнения по программе, согласованной со специалистом. При боли остановитесь.",

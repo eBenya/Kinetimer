@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import ru.projectworkout.kneetempo.ui.screens.PausedScreen
 import ru.projectworkout.kneetempo.ui.screens.PreparingScreen
 import ru.projectworkout.kneetempo.ui.screens.RestScreen
 import ru.projectworkout.kneetempo.ui.screens.ExerciseScreen
+import ru.projectworkout.kneetempo.ui.screens.SettingsScreen
 
 @Composable
 fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
@@ -31,6 +33,14 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
     val exercises by workoutViewModel.exercises.collectAsStateWithLifecycle()
     val blocks by workoutViewModel.blocks.collectAsStateWithLifecycle()
     val message by workoutViewModel.message.collectAsStateWithLifecycle()
+    val settings by workoutViewModel.settings.collectAsStateWithLifecycle()
+    val updateState by workoutViewModel.updateState.collectAsStateWithLifecycle()
+    val view = LocalView.current
+
+    DisposableEffect(view, destination, settings.keepScreenOnDuringWorkout) {
+        view.keepScreenOn = destination == AppDestination.Workout && settings.keepScreenOnDuringWorkout
+        onDispose { view.keepScreenOn = false }
+    }
 
     when (val screen = destination) {
         AppDestination.Home ->
@@ -42,7 +52,20 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
                 onEditBlock = workoutViewModel::editBlock,
                 onDeleteBlock = workoutViewModel::deleteBlock,
                 onOpenLibrary = workoutViewModel::openExerciseLibrary,
+                onOpenSettings = workoutViewModel::openSettings,
                 onClearMessage = workoutViewModel::clearMessage,
+            )
+
+        AppDestination.Settings ->
+            SettingsScreen(
+                appVersion = workoutViewModel.appVersion,
+                settings = settings,
+                updateState = updateState,
+                onSettingsChange = workoutViewModel::updateSettings,
+                onCheckForUpdates = workoutViewModel::checkForUpdates,
+                onInstallUpdate = workoutViewModel::installUpdate,
+                onOpenRelease = workoutViewModel::openRelease,
+                onBack = workoutViewModel::goHome,
             )
 
         AppDestination.ExerciseLibrary ->
@@ -83,7 +106,7 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
                     PreparingScreen(state = state, onPause = workoutViewModel::pauseWorkout)
 
                 is WorkoutUiState.Exercising -> {
-                    PhaseTone(state = state)
+                    if (settings.soundEnabled) PhaseTone(state = state)
                     ExerciseScreen(
                         state = state,
                         onFinish = workoutViewModel::finishWorkout,
@@ -117,6 +140,7 @@ fun WorkoutApp(workoutViewModel: WorkoutViewModel = viewModel()) {
                     onEditBlock = workoutViewModel::editBlock,
                     onDeleteBlock = workoutViewModel::deleteBlock,
                     onOpenLibrary = workoutViewModel::openExerciseLibrary,
+                    onOpenSettings = workoutViewModel::openSettings,
                     onClearMessage = workoutViewModel::clearMessage,
                 )
             }

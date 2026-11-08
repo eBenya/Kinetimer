@@ -21,10 +21,50 @@ data class WorkoutBlock(
     val isBuiltIn: Boolean = false,
 )
 
+data class AppSettings(
+    val soundEnabled: Boolean = true,
+    val preparationSeconds: Int = 5,
+    val setRestSeconds: Int = 60,
+    val exerciseRestSeconds: Int = 90,
+    val keepScreenOnDuringWorkout: Boolean = true,
+)
+
+data class AppRelease(
+    val tag: String,
+    val name: String,
+    val pageUrl: String,
+    val apkUrl: String,
+    val apkSha256: String?,
+)
+
+sealed interface UpdateState {
+    data object Idle : UpdateState
+
+    data object Checking : UpdateState
+
+    data object Downloading : UpdateState
+
+    data class Result(
+        val currentVersion: String,
+        val release: AppRelease,
+        val updateAvailable: Boolean,
+        val versionComparable: Boolean,
+    ) : UpdateState
+
+    data class InstallPermissionRequired(
+        val result: Result,
+        val message: String,
+    ) : UpdateState
+
+    data class Error(val message: String) : UpdateState
+}
+
 sealed interface AppDestination {
     data object Home : AppDestination
 
     data object ExerciseLibrary : AppDestination
+
+    data object Settings : AppDestination
 
     data class ExerciseEditor(val exerciseId: String?) : AppDestination
 

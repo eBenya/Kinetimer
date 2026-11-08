@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,6 +17,35 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            val properties = Properties()
+            val propertiesFile = rootDir.resolve("local.properties")
+            if (propertiesFile.exists()) {
+                properties.load(propertiesFile.inputStream())
+            }
+            val keyPath = properties.getProperty("keystore.path") ?: ""
+            storeFile = if (keyPath.isNotEmpty()) file(keyPath) else null
+            storePassword = properties.getProperty("keystore.password")
+            keyAlias = properties.getProperty("keystore.keyalias") ?: ""
+            keyPassword = properties.getProperty("key.password")
+        }
+    }
+
+
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false // поставьте true, если хотите включить ProGuard/R8
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Связываем релизный билд с нашей подписью
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     compileOptions {

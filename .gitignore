@@ -7,6 +7,9 @@ build/
 gradle-app.setting
 *.gradle.kts.html
 
+**/release/
+release/
+
 # Запрещаем коммитить локальные настройки Gradle (память, прокси)
 /gradle.properties
 # НО разрешаем, если вы хотите делить общие настройки с командой. 
